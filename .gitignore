@@ -1,0 +1,54 @@
+# Archivos y carpetas a ignorar en Git
+
+# Dependencias
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Entornos virtuales Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Archivos de build y distribución
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Build de Vite
+autonomia-frontend/dist/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Archivos temporales
+*.tmp
+*.temp
