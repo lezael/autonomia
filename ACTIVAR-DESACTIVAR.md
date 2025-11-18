@@ -347,4 +347,85 @@ O ejecutar manual (Terminal 1 + Terminal 2)
 
 ---
 
+## 🛠️ Pasos de recuperación y comandos exactos (usados durante la restauración)
+
+Estos son los comandos que se usaron para restablecer, arrancar y verificar el proyecto en mi sesión. Incluyen rutas absolutas y alternativas si `npm`/`node` no está en el PATH.
+
+### 1) Verificar `node` / `npm` y añadir ruta temporalmente
+
+```powershell
+# Comprobar si node/npm están disponibles
+node --version
+npm --version
+
+# Si PowerShell dice que npm no se reconoce, temporalmente añadir ruta (cierra/abre terminal nueva para persistir)
+$env:Path = $env:Path + ";C:\Program Files\nodejs"
+
+# Verificar de nuevo
+node --version
+npm --version
+```
+
+### 2) Instalar dependencias del frontend (en `autonomia-frontend`)
+
+```powershell
+cd C:\Yectos\autonomía\autonomia-frontend
+npm install --no-audit --no-fund
+
+# Si `npm` sigue sin estar disponible, usar ruta absoluta (Windows)
+& 'C:\Program Files\nodejs\npm.cmd' install --no-audit --no-fund
+```
+
+### 3) Iniciar servidor de desarrollo Vite (frontend)
+
+```powershell
+# Ruta habitual
+npm run dev
+
+# Si npm no está en PATH, usar ruta absoluta a npm
+& 'C:\Program Files\nodejs\npm.cmd' run dev
+
+# Alternativa: ejecutar Vite directamente con node
+& 'C:\Program Files\nodejs\node.exe' 'C:\Yectos\autonomía\autonomia-frontend\node_modules\vite\bin\vite.js' --host
+```
+
+### 4) Iniciar backend (FastAPI) desde virtualenv (recomendado)
+
+```powershell
+cd C:\Yectos\autonomía\backend_python
+# Crear + activar venv (si no existe)
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requisitos.txt
+
+# Iniciar con uvicorn (modo desarrollo)
+.\venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000
+
+# Para lanzar como proceso separado (no bloquear la terminal), usar Start-Process:
+Start-Process -FilePath '.\venv\Scripts\python.exe' -ArgumentList @('-m','uvicorn','main:app','--host','0.0.0.0','--port','8000') -WorkingDirectory 'C:\Yectos\autonomía\backend_python'
+```
+
+### 5) Verificar salud y endpoints desde PowerShell
+
+```powershell
+# Salud general
+Invoke-WebRequest -UseBasicParsing http://localhost:8000/api/salud
+
+# Comprobación rápida de endpoints usados por la UI
+foreach($ep in @('/api/radar-dependencia','/api/instituciones','/api/matriz-dependencia')) {
+  Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:8000$ep" -TimeoutSec 5
+}
+
+# Comprobar que Vite está en http://localhost:5173
+# Y que las peticiones /api/* devuelven 200 en la pestaña Network del navegador
+```
+
+### 6) Notas sobre problemas detectados y soluciones aplicadas
+
+- Error `npm: The term 'npm' is not recognized`: solucionado temporalmente añadiendo `C:\Program Files\nodejs` al `$env:Path` y usando rutas absolutas a `npm.cmd`/`node.exe`.
+- Error `ECONNREFUSED` en proxy Vite → el backend no estaba corriendo; al arrancar `uvicorn` el proxy dejó de fallar y las peticiones a `/api/*` devolvieron 200.
+- Si el backend no arranca por temas de puertos, usar `Test-NetConnection -ComputerName localhost -Port 8000` y cambiar puerto si necesario.
+
+---
+
 **Última actualización**: Noviembre 2025 | **Versión**: 1.0.0-beta
