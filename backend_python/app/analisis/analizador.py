@@ -1,22 +1,219 @@
 """
-Stub para módulo de análisis.
-Tu colega implementará aquí la lógica matemática y matricial.
+Módulo de análisis de soberanía tecnológica.
+Implementa detección de tecnologías y cálculo de métricas.
 """
 import time
-from typing import List, Tuple
-from app.api.modelos import Tecnologia, ResultadoAnalisis
+import re
+from typing import List, Dict
+from app.api.modelos import Tecnologia, TipoTecnologia
 
+
+# ============================================================================
+# DICCIONARIO DE TECNOLOGÍAS CONOCIDAS
+# ============================================================================
+
+TECNOLOGIAS_CONOCIDAS = {
+    # === TECNOLOGÍAS PRIVATIVAS ===
+    "Google Analytics": {
+        "patterns": [
+            r"google-analytics\.com",
+            r"analytics\.js",
+            r"ga\.js",
+            r"gtag",
+        ],
+        "categoria": "Analítica",
+        "tipo": TipoTecnologia.PRIVATIVO
+    },
+    
+    "Google Tag Manager": {
+        "patterns": [
+            r"googletagmanager\.com",
+            r"gtm\.js",
+        ],
+        "categoria": "Analítica",
+        "tipo": TipoTecnologia.PRIVATIVO
+    },
+    
+    "Google Fonts": {
+        "patterns": [
+            r"fonts\.googleapis\.com",
+            r"fonts\.gstatic\.com",
+        ],
+        "categoria": "CDN",
+        "tipo": TipoTecnologia.PRIVATIVO
+    },
+    
+    "AWS CloudFront": {
+        "patterns": [
+            r"cloudfront\.net",
+            r"amazonaws\.com",
+        ],
+        "categoria": "CDN",
+        "tipo": TipoTecnologia.PRIVATIVO
+    },
+    
+    "Microsoft Azure": {
+        "patterns": [
+            r"azure\.com",
+            r"azureedge\.net",
+        ],
+        "categoria": "Hosting",
+        "tipo": TipoTecnologia.PRIVATIVO
+    },
+    
+    "Facebook Pixel": {
+        "patterns": [
+            r"facebook\.com/tr",
+            r"fbevents\.js",
+            r"connect\.facebook\.net",
+        ],
+        "categoria": "Analítica",
+        "tipo": TipoTecnologia.PRIVATIVO
+    },
+    
+    "LinkedIn Insight": {
+        "patterns": [
+            r"linkedin\.com/px",
+            r"snap\.licdn\.com",
+        ],
+        "categoria": "Analítica",
+        "tipo": TipoTecnologia.PRIVATIVO
+    },
+    
+    "Salesforce": {
+        "patterns": [
+            r"salesforce\.com",
+            r"force\.com",
+        ],
+        "categoria": "CRM",
+        "tipo": TipoTecnologia.PRIVATIVO
+    },
+    
+    "Intercom": {
+        "patterns": [
+            r"intercom\.io",
+            r"widget\.intercom\.io",
+        ],
+        "categoria": "Chat",
+        "tipo": TipoTecnologia.PRIVATIVO
+    },
+    
+    "Slack": {
+        "patterns": [
+            r"slack\.com",
+            r"slack-edge\.com",
+        ],
+        "categoria": "Chat",
+        "tipo": TipoTecnologia.PRIVATIVO
+    },
+    
+    # === TECNOLOGÍAS LIBRES ===
+    "Moodle": {
+        "patterns": [
+            r"moodle",
+            r"/theme/boost",
+            r"/pluginfile\.php",
+        ],
+        "categoria": "LMS",
+        "tipo": TipoTecnologia.LIBRE
+    },
+    
+    "Nextcloud": {
+        "patterns": [
+            r"nextcloud",
+            r"/apps/files",
+        ],
+        "categoria": "Almacenamiento",
+        "tipo": TipoTecnologia.LIBRE
+    },
+    
+    "WordPress": {
+        "patterns": [
+            r"wp-content",
+            r"wp-includes",
+            r"wordpress",
+        ],
+        "categoria": "CMS",
+        "tipo": TipoTecnologia.LIBRE
+    },
+    
+    "Jitsi Meet": {
+        "patterns": [
+            r"jitsi",
+            r"meet\.jit\.si",
+        ],
+        "categoria": "Videoconferencia",
+        "tipo": TipoTecnologia.LIBRE
+    },
+    
+    "BigBlueButton": {
+        "patterns": [
+            r"bigbluebutton",
+            r"bbb-",
+        ],
+        "categoria": "Videoconferencia",
+        "tipo": TipoTecnologia.LIBRE
+    },
+    
+    "LibreOffice Online": {
+        "patterns": [
+            r"libreoffice",
+            r"collabora",
+        ],
+        "categoria": "Ofimática",
+        "tipo": TipoTecnologia.LIBRE
+    },
+    
+    "Mattermost": {
+        "patterns": [
+            r"mattermost",
+        ],
+        "categoria": "Chat",
+        "tipo": TipoTecnologia.LIBRE
+    },
+    
+    "Rocket.Chat": {
+        "patterns": [
+            r"rocket\.chat",
+            r"rocketchat",
+        ],
+        "categoria": "Chat",
+        "tipo": TipoTecnologia.LIBRE
+    },
+    
+    "Matomo": {
+        "patterns": [
+            r"matomo",
+            r"piwik",
+        ],
+        "categoria": "Analítica",
+        "tipo": TipoTecnologia.LIBRE
+    },
+    
+    "Apache": {
+        "patterns": [
+            r"apache",
+        ],
+        "categoria": "Servidor",
+        "tipo": TipoTecnologia.LIBRE
+    },
+}
+
+
+# ============================================================================
+# CLASE PRINCIPAL
+# ============================================================================
 
 class AnalizadorSoberania:
     """
     Clase principal para análisis de soberanía tecnológica.
     
-    Tu colega completará los métodos según requisitos:
-    - Detectar 10+ tecnologías
-    - Calcular S(i) - Índice de Soberanía
-    - Calcular R(i) - Ranking Normalizado
-    - Construir matriz D de dependencia con NumPy
-    - Generar recomendaciones
+    Implementa:
+    - Detección de tecnologías (20 tecnologías)
+    - Cálculo de S(i) - Índice de Soberanía
+    - Cálculo de R(i) - Ranking Normalizado
+    - Construcción de matriz D de dependencia
+    - Generación de recomendaciones
     """
     
     def __init__(self):
@@ -25,31 +222,49 @@ class AnalizadorSoberania:
     
     def detectar_tecnologias(self, contenido_html: str) -> List[Tecnologia]:
         """
-        IMPLEMENTAR: Detectar tecnologías en HTML.
-        
-        Reqs:
-        - Mínimo 10 tecnologías (8 libres + 10 privativas)
-        - Usar patrones regex o BeautifulSoup
-        - Retornar lista de Tecnologia con confianza
+        Detecta tecnologías en el HTML usando patrones regex.
         
         Args:
-            contenido_html: HTML de la página
+            contenido_html: HTML de la página a analizar
             
         Returns:
-            List[Tecnologia]: Tecnologías detectadas
+            List[Tecnologia]: Lista de tecnologías detectadas
             
         Example:
             >>> analizador = AnalizadorSoberania()
+            >>> html = "<script src='https://google-analytics.com/analytics.js'></script>"
             >>> techs = analizador.detectar_tecnologias(html)
             >>> len(techs) > 0
             True
         """
-        # TODO: Tu colega - Implementar detector_tecnologias.py
-        return []
+        tecnologias_encontradas = []
+        tecnologias_detectadas_nombres = set()  # Para evitar duplicados
+        
+        for nombre_tech, config in TECNOLOGIAS_CONOCIDAS.items():
+            # Si ya detectamos esta tecnología, saltar
+            if nombre_tech in tecnologias_detectadas_nombres:
+                continue
+            
+            # Buscar cada patrón
+            for pattern in config['patterns']:
+                if re.search(pattern, contenido_html, re.IGNORECASE):
+                    # ¡Encontrada!
+                    tech = Tecnologia(
+                        nombre=nombre_tech,  # ← Corregido de "name" a "nombre"
+                        tipo=config['tipo'],  # ← Ahora es TipoTecnologia (Enum)
+                        confianza=0.90,  # ← Corregido de "confidence" a "confianza"
+                        categoria=config['categoria']
+                    )
+                    
+                    tecnologias_encontradas.append(tech)
+                    tecnologias_detectadas_nombres.add(nombre_tech)
+                    break  # Ya encontramos esta tech, pasar a la siguiente
+        
+        return tecnologias_encontradas
     
     def calcular_indice_soberania(self, tecnologias: List[Tecnologia]) -> float:
         """
-        IMPLEMENTAR: Calcula índice de soberanía S(i).
+        Calcula índice de soberanía S(i).
         
         Fórmula:
         S(i) = Tecnologías Libres / Total Tecnologías
@@ -63,134 +278,146 @@ class AnalizadorSoberania:
             float: Índice entre 0.0 y 1.0
             
         Example:
-            >>> # 2 libres, 2 privativas = 0.5 (50%)
-            >>> s = analizador.calcular_indice_soberania(techs)
-            >>> 0.0 <= s <= 1.0
-            True
+            >>> tech1 = Tecnologia(nombre="Moodle", tipo=TipoTecnologia.LIBRE, confianza=0.9, categoria="LMS")
+            >>> tech2 = Tecnologia(nombre="Google", tipo=TipoTecnologia.PRIVATIVO, confianza=0.9, categoria="Analítica")
+            >>> s = analizador.calcular_indice_soberania([tech1, tech2])
+            >>> round(s, 2)
+            0.5
         """
-        # TODO: Tu colega - Implementar lógica de cálculo
-        return 0.0
+        if not tecnologias:
+            return 0.0  # Sin tecnologías = sin soberanía
+        
+        libres = sum(1 for t in tecnologias if t.tipo == TipoTecnologia.LIBRE)
+        total = len(tecnologias)
+        
+        s_i = libres / total
+        
+        return round(s_i, 4)  # 4 decimales
     
     def calcular_ranking_normalizado(self, indice_soberania: float) -> float:
         """
-        IMPLEMENTAR: Calcula ranking normalizado R(i).
+        Calcula ranking normalizado R(i) en escala 0-1 (frontend lo multiplica por 10).
         
-        Escala: 0.0 a 1.0
-        (Se multiplica por 10 en frontend para mostrar 0-10)
+        Fórmula:
+        R(i) = S(i)  (ya está en escala 0-1)
         
         Args:
-            indice_soberania: Índice S(i) ya calculado
+            indice_soberania: Índice S(i) entre 0.0 y 1.0
             
         Returns:
             float: Ranking entre 0.0 y 1.0
             
         Example:
-            >>> # 50% soberanía = 0.5 ranking
-            >>> r = analizador.calcular_ranking_normalizado(0.5)
-            >>> 0.0 <= r <= 1.0
-            True
+            >>> r = analizador.calcular_ranking_normalizado(0.65)
+            >>> r
+            0.65
         """
-        # TODO: Tu colega - Implementar normalización
-        return indice_soberania
+        # Validar rango
+        if not (0.0 <= indice_soberania <= 1.0):
+            raise ValueError(
+                f"S(i) debe estar entre 0.0 y 1.0, recibido: {indice_soberania}"
+            )
+        
+        # El modelo espera 0-1, no 0-10
+        # Frontend lo convierte a escala 0-10 para visualización
+        return round(indice_soberania, 4)
     
     def construir_matriz_dependencia(self, tecnologias: List[Tecnologia]) -> List[List[int]]:
         """
-        IMPLEMENTAR: Construye matriz D de dependencia.
+        Construye matriz de dependencia D[1 x n_tecnologias].
         
-        Usar NumPy para:
-        - Representación matricial de dependencias
-        - Cálculos de autovalores si es necesario
+        Para una sola institución (esta URL analizada):
+        - Filas: 1 (esta institución)
+        - Columnas: n tecnologías detectadas
+        - Valores: 1 (usa esta tecnología)
         
         Args:
             tecnologias: Tecnologías detectadas
             
         Returns:
-            List[List[int]]: Matriz de dependencia
+            List[List[int]]: Matriz 1xN donde N = len(tecnologias)
             
         Example:
-            >>> # Matriz de tecnologías vs propiedades
-            >>> D = analizador.construir_matriz_dependencia(techs)
-            >>> len(D) > 0
-            True
+            >>> techs = [tech1, tech2, tech3]
+            >>> matriz = analizador.construir_matriz_dependencia(techs)
+            >>> matriz
+            [[1, 1, 1]]
         """
-        # TODO: Tu colega - Implementar con NumPy
-        return []
+        if not tecnologias:
+            return [[]]
+        
+        # Matriz de 1 fila (esta institución) x N columnas (tecnologías detectadas)
+        # Todas las tecnologías detectadas tienen valor 1 (las usa)
+        fila = [1 for _ in tecnologias]
+        
+        return [fila]  # Lista de listas (matriz 1xN)
     
     def generar_recomendaciones(self, 
                                tecnologias: List[Tecnologia],
                                indice_soberania: float) -> List[str]:
         """
-        IMPLEMENTAR: Genera recomendaciones personalizadas.
+        Genera recomendaciones personalizadas basadas en análisis.
         
         Args:
             tecnologias: Tecnologías detectadas
-            indice_soberania: Índice de soberanía calculado
+            indice_soberania: Índice S(i)
             
         Returns:
-            List[str]: Lista de recomendaciones
+            list[str]: Lista de recomendaciones en lenguaje natural
             
         Example:
             >>> recos = analizador.generar_recomendaciones(techs, 0.3)
             >>> len(recos) > 0
             True
         """
-        # TODO: Tu colega - Implementar lógica de recomendaciones
         recomendaciones = []
+        r_i_display = indice_soberania * 10  # Convertir a escala 0-10 para mensaje
         
-        # Placeholder: ejemplo de cómo podría funcionar
-        privativas = sum(1 for t in tecnologias if t.tipo == "privativo")
-        total = len(tecnologias)
+        # 1. Recomendación general basada en S(i)
+        if r_i_display < 3:
+            recomendaciones.append(
+                f"⚠️ Tu institución tiene BAJA soberanía ({r_i_display:.1f}/10). "
+                "Considera desarrollar una estrategia de migración a alternativas libres."
+            )
+        elif r_i_display < 6:
+            recomendaciones.append(
+                f"📊 Soberanía MEDIA ({r_i_display:.1f}/10). Identifica dependencias críticas "
+                "y crea un plan de migración gradual hacia software libre."
+            )
+        else:
+            recomendaciones.append(
+                f"✅ ¡Excelente soberanía tecnológica ({r_i_display:.1f}/10)! "
+                "Mantén esta estrategia de uso de tecnologías libres."
+            )
         
-        if total > 0 and (privativas / total) > 0.7:
-            recomendaciones.append("Se detectó alto nivel de dependencia privativa")
+        # 2. Recomendaciones específicas por tecnologías privativas
+        propietarias = [t for t in tecnologias if t.tipo == TipoTecnologia.PRIVATIVO]
+        
+        for tech in propietarias[:3]:  # Top 3 privativas detectadas
+            recomendaciones.append(
+                f"⚠️ Dependencia detectada: {tech.nombre} ({tech.categoria}). "
+                f"Evalúa alternativas libres (confianza: {tech.confianza:.0%})"
+            )
+        
+        # 3. Mensaje positivo sobre tecnologías libres
+        libres = [t for t in tecnologias if t.tipo == TipoTecnologia.LIBRE]
+        
+        if libres:
+            nombres_libres = ", ".join([t.nombre for t in libres[:5]])  # Máximo 5
+            recomendaciones.append(
+                f"✅ Positivo: ya usas {len(libres)} tecnologías libres ({nombres_libres})"
+            )
+        else:
+            recomendaciones.append(
+                "💡 Sugerencia: No se detectaron tecnologías libres. "
+                "Considera incorporar herramientas de código abierto como Moodle, Nextcloud, o Matomo."
+            )
         
         return recomendaciones
-    
-    def analizar_url(self, contenido_html: str) -> Tuple[ResultadoAnalisis, int]:
-        """
-        IMPLEMENTAR: Pipeline completo de análisis.
-        
-        Orquesta los métodos anteriores:
-        1. Detectar tecnologías
-        2. Calcular índices
-        3. Construir matriz
-        4. Generar recomendaciones
-        
-        Args:
-            contenido_html: HTML a analizar
-            
-        Returns:
-            Tuple[ResultadoAnalisis, int]: Resultado y tiempo en ms
-        """
-        # TODO: Tu colega - Orquestar el análisis completo
-        
-        tecnologias = self.detectar_tecnologias(contenido_html)
-        indice_soberania = self.calcular_indice_soberania(tecnologias)
-        ranking = self.calcular_ranking_normalizado(indice_soberania)
-        matriz = self.construir_matriz_dependencia(tecnologias)
-        recomendaciones = self.generar_recomendaciones(tecnologias, indice_soberania)
-        
-        tiempo_ms = int((time.time() - self.inicio_procesamiento) * 1000)
-        
-        resultado = ResultadoAnalisis(
-            url="[url será set en endpoints.py]",
-            indice_soberania=indice_soberania,
-            ranking_normalizado=ranking,
-            tecnologias_detectadas=tecnologias,
-            tecnologias_libres_count=sum(1 for t in tecnologias if t.tipo == "libre"),
-            tecnologias_privativas_count=sum(1 for t in tecnologias if t.tipo == "privativo"),
-            matriz_dependencia=matriz,
-            recomendaciones=recomendaciones,
-            estado="éxito" if len(tecnologias) > 0 else "sin_datos",
-            mensaje="Análisis completado",
-            tiempo_procesamiento_ms=tiempo_ms
-        )
-        
-        return resultado, tiempo_ms
 
 
 # ============================================================================
-# INSTANCIA GLOBAL (opcional, para uso en endpoints)
+# INSTANCIA GLOBAL (para importar desde endpoints.py)
 # ============================================================================
 
 analizador = AnalizadorSoberania()

@@ -1,9 +1,9 @@
 """
-Endpoints REST de la API AutonomIA.
-Infraestructura general - Tu colega implementará la lógica de análisis específica.
+Endpoints de la API REST para AutonomIA.
+Gestiona análisis de URLs y métricas de soberanía tecnológica.
 """
-from fastapi import APIRouter, HTTPException, Query
 import time
+from fastapi import APIRouter, HTTPException
 from typing import List
 
 from app.api.modelos import (
@@ -11,142 +11,52 @@ from app.api.modelos import (
     ResultadoAnalisis,
     RespuestaSalud,
     ListaTecnologias,
-    DatosRadar,
-    DatosTablaInstituciones,
-    DatosMatrizDependencia,
-    SerieHeatmap,
-    Tecnologia,
     TipoTecnologia
 )
 from app.extraccion.manejador_peticiones import obtener_contenido_url
-
-# Router para endpoints de la API
-router = APIRouter(prefix="/api", tags=["api"])
+from app.analisis.analizador import analizador
+from app.utilidades.logger_config import logger_app
 
 
 # ============================================================================
-# HEALTH CHECK
+# ROUTER DE FASTAPI
+# ============================================================================
+
+router = APIRouter(
+    prefix="/api",
+    tags=["análisis"],
+    responses={
+        404: {"description": "No encontrado"},
+        500: {"description": "Error interno del servidor"}
+    }
+)
+
+
+# ============================================================================
+# ENDPOINT: SALUD DEL SISTEMA
 # ============================================================================
 
 @router.get("/salud", response_model=RespuestaSalud)
-async def health_check():
+async def verificar_salud():
     """
-    Verifica el estado del servidor.
+    Verifica que la API está funcionando correctamente.
     
     Returns:
-        RespuestaSalud: Estado operacional de la API
+        RespuestaSalud: Estado del sistema
+        
+    Example:
+        GET /api/salud
+        → {"estado": "ok", "mensaje": "Sistema operativo", "version": "1.0.0"}
     """
     return RespuestaSalud(
-        status="operacional",
-        version="1.0.0",
-        mensaje="API AutonomIA operacional"
+        estado="ok",
+        mensaje="Sistema operativo - AutonomIA Backend",
+        version="1.0.0"
     )
 
 
 # ============================================================================
-# LISTAR TECNOLOGÍAS
-# ============================================================================
-
-@router.get("/tecnologias", response_model=ListaTecnologias)
-async def listar_tecnologias():
-    """
-    Lista todas las tecnologías detectables.
-    
-    Tu colega: Actualizar esta lista según detector_tecnologias.py
-    
-    Returns:
-        ListaTecnologias: Tecnologías libres y privativas
-    """
-    libres = [
-        "Moodle",
-        "Nextcloud",
-        "WordPress",
-        "Jitsi Meet",
-        "BigBlueButton",
-        "LibreOffice Online",
-        "Mattermost",
-        "Rocket.Chat",
-    ]
-    
-    privativas = [
-        "Google Analytics",
-        "Google Tag Manager",
-        "Microsoft Azure",
-        "AWS CloudFront",
-        "Facebook Pixel",
-        "LinkedIn Insight",
-        "Google Fonts",
-        "Salesforce",
-        "Intercom",
-        "Slack",
-    ]
-    
-    return ListaTecnologias(
-        libres=libres,
-        privativas=privativas,
-        total=len(libres) + len(privativas)
-    )
-
-
-# ============================================================================
-# DATOS PARA GRÁFICOS (Ejemplo - tu colega los completará)
-# ============================================================================
-
-@router.get("/radar-dependencia", response_model=DatosRadar)
-async def get_radar_dependencia():
-    """
-    Obtiene datos para gráfico de radar de dependencia.
-    
-    DATO DE EJEMPLO: Tu colega reemplazará con datos reales de BD/análisis
-    
-    Returns:
-        DatosRadar: Etiquetas y valores de dependencia
-    """
-    return DatosRadar(
-        labels=["Google", "AWS", "Microsoft", "Meta"],
-        valoresDeDependencia=[2, 1, 2, 1]
-    )
-
-
-@router.get("/instituciones", response_model=List[DatosTablaInstituciones])
-async def get_instituciones():
-    """
-    Obtiene ranking de instituciones (tabla de soberanía).
-    
-    DATO DE EJEMPLO: Tu colega reemplazará con datos reales
-    
-    Returns:
-        List[DatosTablaInstituciones]: Instituciones con sus métricas
-    """
-    return [
-        DatosTablaInstituciones(institucion="Univ_A", s=-25, r=3.5),
-        DatosTablaInstituciones(institucion="Univ_B", s=67, r=8.2),
-        DatosTablaInstituciones(institucion="Univ_C", s=-100, r=0.0),
-    ]
-
-
-@router.get("/matriz-dependencia", response_model=DatosMatrizDependencia)
-async def get_matriz_dependencia():
-    """
-    Obtiene datos para heatmap de matriz de dependencia.
-    
-    DATO DE EJEMPLO: Tu colega reemplazará con matriz real calculada
-    
-    Returns:
-        DatosMatrizDependencia: Series e instituciones
-    """
-    return DatosMatrizDependencia(
-        series=[
-            SerieHeatmap(name="Univ_A", data=[1, 0, 1, 0]),
-            SerieHeatmap(name="Univ_B", data=[1, 1, 0, 0]),
-            SerieHeatmap(name="Univ_C", data=[0, 0, 1, 1]),
-        ],
-        categorias=["Google", "AWS", "Microsoft", "Meta"]
-    )
-
-
-# ============================================================================
-# ENDPOINT PRINCIPAL: ANALIZAR URL
+# ENDPOINT: ANÁLISIS DE URL
 # ============================================================================
 
 @router.post("/analizar", response_model=ResultadoAnalisis)
@@ -154,92 +64,213 @@ async def analizar_url(solicitud: SolicitudAnalisis):
     """
     Analiza dependencia tecnológica de una URL.
     
-    FLUJO:
-    1. ✅ Obtener contenido HTML (implementado)
-    2. ❌ Detectar tecnologías (TU COLEGA)
-    3. ❌ Calcular índices (TU COLEGA)
-    4. ❌ Construir matriz (TU COLEGA)
-    5. ❌ Generar recomendaciones (TU COLEGA)
+    FLUJO COMPLETO:
+    1. ✅ Obtener contenido HTML
+    2. ✅ Detectar tecnologías
+    3. ✅ Calcular S(i) - Índice de Soberanía
+    4. ✅ Calcular R(i) - Ranking Normalizado
+    5. ✅ Construir matriz de dependencia
+    6. ✅ Generar recomendaciones personalizadas
     
     Args:
-        solicitud: URL a analizar
+        solicitud: SolicitudAnalisis con URL a analizar
         
     Returns:
         ResultadoAnalisis: Análisis completo con métricas
         
     Raises:
-        HTTPException: Si la URL no es accesible o hay error
+        HTTPException: 400 si URL no accesible, 500 si error interno
+        
+    Example:
+        POST /api/analizar
+        Body: {"url": "https://www.example.edu"}
+        
+        → {
+            "url": "https://www.example.edu",
+            "indice_soberania": 0.65,
+            "ranking_normalizado": 0.65,
+            "tecnologias_detectadas": [...],
+            "tecnologias_libres_count": 13,
+            "tecnologias_privativas_count": 7,
+            "matriz_dependencia": [[1, 1, 0, ...]],
+            "recomendaciones": ["...", "..."],
+            "estado": "éxito",
+            "mensaje": "Análisis completado: 20 tecnologías detectadas",
+            "tiempo_procesamiento_ms": 1234
+        }
     """
     inicio = time.time()
     url_str = str(solicitud.url)
     
+    logger_app.info(f"📊 Iniciando análisis de URL: {url_str}")
+    
     try:
-        # PASO 1: Obtener contenido HTML
+        # ========================================
+        # PASO 1: OBTENER CONTENIDO HTML
+        # ========================================
         exito, contenido_html, error_msg = obtener_contenido_url(url_str)
         
         if not exito:
+            logger_app.warning(f"❌ No se pudo acceder a {url_str}: {error_msg}")
             raise HTTPException(
                 status_code=400,
                 detail=f"No se pudo acceder a la URL: {error_msg}"
             )
         
-        # PASO 2-5: TU COLEGA IMPLEMENTARÁ AQUÍ
-        # Crear instancia de ResultadoAnalisis con los datos que tu colega calcule
+        logger_app.info(f"✅ HTML descargado: {len(contenido_html)} caracteres")
+        
+        # ========================================
+        # PASO 2: DETECTAR TECNOLOGÍAS
+        # ========================================
+        tecnologias = analizador.detectar_tecnologias(contenido_html)
+        logger_app.info(f"🔍 Tecnologías detectadas: {len(tecnologias)}")
+        
+        # ========================================
+        # PASO 3: CALCULAR ÍNDICE DE SOBERANÍA
+        # ========================================
+        indice_soberania = analizador.calcular_indice_soberania(tecnologias)
+        logger_app.info(f"📈 S(i) = {indice_soberania:.4f}")
+        
+        # ========================================
+        # PASO 4: CALCULAR RANKING NORMALIZADO
+        # ========================================
+        ranking_normalizado = analizador.calcular_ranking_normalizado(indice_soberania)
+        logger_app.info(f"⭐ R(i) = {ranking_normalizado:.4f} (escala 0-1)")
+        
+        # ========================================
+        # PASO 5: CONSTRUIR MATRIZ DE DEPENDENCIA
+        # ========================================
+        matriz_dependencia = analizador.construir_matriz_dependencia(tecnologias)
+        logger_app.info(f"🔢 Matriz: {len(matriz_dependencia)}x{len(matriz_dependencia[0]) if matriz_dependencia else 0}")
+        
+        # ========================================
+        # PASO 6: GENERAR RECOMENDACIONES
+        # ========================================
+        recomendaciones = analizador.generar_recomendaciones(tecnologias, indice_soberania)
+        logger_app.info(f"💡 Recomendaciones generadas: {len(recomendaciones)}")
+        
+        # ========================================
+        # PASO 7: CONTAR TECNOLOGÍAS POR TIPO
+        # ========================================
+        tecnologias_libres = sum(1 for t in tecnologias if t.tipo == TipoTecnologia.LIBRE)
+        tecnologias_privativas = sum(1 for t in tecnologias if t.tipo == TipoTecnologia.PRIVATIVO)
+        
+        logger_app.info(f"📊 Libres: {tecnologias_libres} | Privativas: {tecnologias_privativas}")
+        
+        # ========================================
+        # PASO 8: CREAR RESULTADO FINAL
+        # ========================================
+        tiempo_ms = int((time.time() - inicio) * 1000)
         
         resultado = ResultadoAnalisis(
             url=url_str,
-            indice_soberania=None,  # Tu colega: calcular
-            ranking_normalizado=None,  # Tu colega: calcular
-            tecnologias_detectadas=[],  # Tu colega: obtener de detector
-            tecnologias_libres_count=0,  # Tu colega: contar
-            tecnologias_privativas_count=0,  # Tu colega: contar
-            matriz_dependencia=None,  # Tu colega: construir con NumPy
-            recomendaciones=[],  # Tu colega: generar
+            indice_soberania=indice_soberania,
+            ranking_normalizado=ranking_normalizado,
+            tecnologias_detectadas=tecnologias,
+            tecnologias_libres_count=tecnologias_libres,
+            tecnologias_privativas_count=tecnologias_privativas,
+            matriz_dependencia=matriz_dependencia,
+            recomendaciones=recomendaciones,
             estado="éxito",
-            mensaje="Análisis en desarrollo - estructura lista para tu colega",
-            tiempo_procesamiento_ms=int((time.time() - inicio) * 1000)
+            mensaje=f"Análisis completado: {len(tecnologias)} tecnologías detectadas",
+            tiempo_procesamiento_ms=tiempo_ms
         )
+        
+        logger_app.info(f"✅ Análisis completado en {tiempo_ms}ms")
         
         return resultado
         
     except HTTPException:
+        # Re-lanzar excepciones HTTP (400, 404, etc)
         raise
+        
     except Exception as e:
+        # Capturar errores inesperados
         tiempo_ms = int((time.time() - inicio) * 1000)
+        logger_app.error(f"❌ Error inesperado: {str(e)}")
+        
         raise HTTPException(
             status_code=500,
-            detail=f"Error inesperado: {str(e)}"
+            detail=f"Error interno del servidor: {str(e)}"
         )
 
 
 # ============================================================================
-# ENDPOINT PARA DEBUG (opcional)
+# ENDPOINT: LISTAR TECNOLOGÍAS CONOCIDAS
 # ============================================================================
 
-@router.post("/debug/analizar-html")
-async def debug_analizar_html(solicitud: SolicitudAnalisis):
+@router.get("/tecnologias", response_model=ListaTecnologias)
+async def listar_tecnologias():
     """
-    SOLO PARA DESARROLLO: Retorna HTML bruto de la URL.
-    Tu colega puede usar esto para debuggear patrones de detección.
+    Lista todas las tecnologías que el sistema puede detectar.
     
-    Args:
-        solicitud: URL a analizar
-        
     Returns:
-        dict: Con HTML bruto (limitado a 10KB para debug)
+        ListaTecnologias: Catálogo completo de tecnologías
+        
+    Example:
+        GET /api/tecnologias
+        
+        → {
+            "total": 20,
+            "libres": 10,
+            "privativas": 10,
+            "tecnologias": [
+                {"nombre": "Moodle", "tipo": "libre", "categoria": "LMS"},
+                {"nombre": "Google Analytics", "tipo": "privativo", "categoria": "Analítica"},
+                ...
+            ]
+        }
     """
-    url_str = str(solicitud.url)
-    exito, contenido_html, error_msg = obtener_contenido_url(url_str)
+    from app.analisis.analizador import TECNOLOGIAS_CONOCIDAS
     
-    if not exito:
-        raise HTTPException(status_code=400, detail=error_msg)
+    tecnologias = []
     
-    # Limitar a 10KB para respuesta JSON
-    html_truncado = contenido_html[:10000]
+    for nombre, config in TECNOLOGIAS_CONOCIDAS.items():
+        tecnologias.append({
+            "nombre": nombre,
+            "tipo": config['tipo'].value,  # Convertir Enum a string
+            "categoria": config['categoria']
+        })
+    
+    libres = sum(1 for t in tecnologias if t['tipo'] == 'libre')
+    privativas = sum(1 for t in tecnologias if t['tipo'] == 'privativo')
+    
+    return ListaTecnologias(
+        total=len(tecnologias),
+        libres=libres,
+        privativas=privativas,
+        tecnologias=tecnologias
+    )
+
+
+# ============================================================================
+# ENDPOINT: ESTADÍSTICAS DEL SISTEMA
+# ============================================================================
+
+@router.get("/estadisticas")
+async def obtener_estadisticas():
+    """
+    Obtiene estadísticas generales del sistema.
+    
+    Returns:
+        dict: Estadísticas del analizador
+        
+    Example:
+        GET /api/estadisticas
+        
+        → {
+            "tecnologias_conocidas": 20,
+            "categorias": ["Analítica", "LMS", "CMS", "CDN", ...],
+            "version_analizador": "1.0.0"
+        }
+    """
+    from app.analisis.analizador import TECNOLOGIAS_CONOCIDAS
+    
+    categorias = set(config['categoria'] for config in TECNOLOGIAS_CONOCIDAS.values())
     
     return {
-        "url": url_str,
-        "tamaño_bytes": len(contenido_html),
-        "html_primeros_10kb": html_truncado,
-        "completo": len(contenido_html) <= 10000
+        "tecnologias_conocidas": len(TECNOLOGIAS_CONOCIDAS),
+        "categorias": sorted(list(categorias)),
+        "version_analizador": "1.0.0",
+        "estado": "operativo"
     }
