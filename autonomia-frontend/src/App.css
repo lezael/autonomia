@@ -191,8 +191,20 @@ main {
 }
 
 .estado-exito {
-  background-color: #e8f5e9;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(129, 199, 132, 0.1) 100%);
+  border-left: 5px solid #4caf50;
   color: #2e7d32;
+  font-weight: 600;
+  padding: 1.2rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.estado-exito::before {
+  content: '✅';
+  font-size: 1.5rem;
 }
 
 .icono {
@@ -225,6 +237,432 @@ footer p {
   margin: 0.5rem 0;
 }
 
+/* ============================================================================
+   ESTILOS PARA FORMULARIO DE ANÁLISIS (integrado con tu diseño)
+   ============================================================================ */
+
+.formulario-analisis {
+  margin: 1.5rem 0;
+}
+
+.input-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.input-url {
+  flex: 1;
+  min-width: 300px;
+  padding: 0.9rem 1.2rem;
+  font-size: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+}
+
+.input-url:focus {
+  outline: none;
+  border-color: #667eea;
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.input-url:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-analizar {
+  padding: 0.9rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-analizar:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.btn-analizar:active:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-analizar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ============================================================================
+   RESULTADO DEL ANÁLISIS
+   ============================================================================ */
+
+.resultado-analisis {
+  margin-top: 2rem;
+  animation: fadeInUp 0.6s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   MÉTRICAS PRINCIPALES
+   ============================================================================ */
+
+.metricas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.metrica-card {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border: 2px solid #667eea40;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.metrica-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.metrica-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+  border-color: #667eea;
+}
+
+.metrica-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  padding: 0;
+}
+
+.valor-grande {
+  font-size: 3.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 1rem 0;
+  line-height: 1;
+}
+
+.descripcion {
+  font-size: 0.95rem;
+  color: #888;
+  margin-top: 0.75rem;
+  font-weight: 500;
+}
+
+/* ============================================================================
+   TECNOLOGÍAS DETECTADAS
+   ============================================================================ */
+
+.tecnologias-detectadas {
+  margin: 2.5rem 0;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 2px solid #e0e0e0;
+}
+
+.tecnologias-detectadas h3 {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-size: 1.3rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #667eea;
+}
+
+.tecnologias-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.tech-badge {
+  padding: 1.2rem;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.tech-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.tech-libre {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.08) 0%, rgba(129, 199, 132, 0.08) 100%);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.tech-libre::before {
+  background: linear-gradient(180deg, #4caf50 0%, #81c784 100%);
+}
+
+.tech-privativo {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.08) 0%, rgba(239, 83, 80, 0.08) 100%);
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.tech-privativo::before {
+  background: linear-gradient(180deg, #ff6b6b 0%, #ef5350 100%);
+}
+
+.tech-badge:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.tech-libre:hover {
+  border-color: #4caf50;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(129, 199, 132, 0.15) 100%);
+}
+
+.tech-privativo:hover {
+  border-color: #ff6b6b;
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(239, 83, 80, 0.15) 100%);
+}
+
+.tech-nombre {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #333;
+  margin-left: 8px;
+}
+
+.tech-tipo {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.tech-libre .tech-tipo {
+  color: #2e7d32;
+}
+
+.tech-privativo .tech-tipo {
+  color: #c62828;
+}
+
+.tech-categoria {
+  font-size: 0.8rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  margin-left: 8px;
+  align-self: flex-start;
+}
+
+/* ============================================================================
+   RECOMENDACIONES
+   ============================================================================ */
+
+.recomendaciones {
+  margin: 2.5rem 0;
+  padding: 2rem;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.05) 0%, rgba(255, 152, 0, 0.05) 100%);
+  border-left: 5px solid #ff9800;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(255, 152, 0, 0.1);
+}
+
+.recomendaciones h3 {
+  margin: 0 0 1.5rem 0;
+  color: #ef6c00;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recomendaciones h3::before {
+  content: '💡';
+  font-size: 1.5rem;
+}
+
+.recomendaciones ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recomendaciones li {
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background-color: white;
+  border-radius: 8px;
+  border-left: 3px solid #ffa726;
+  color: #555;
+  line-height: 1.7;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.recomendaciones li:hover {
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.15);
+}
+
+.recomendaciones li:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   MATRIZ DE DEPENDENCIA INFO
+   ============================================================================ */
+
+.matriz-info {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 2px solid #e0e0e0;
+}
+
+.matriz-info h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.2rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #667eea;
+}
+
+.matriz-info p {
+  margin: 0.5rem 0;
+  color: #666;
+  font-weight: 500;
+}
+
+.matriz-info code {
+  display: block;
+  padding: 1rem;
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-radius: 8px;
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 0.9rem;
+  overflow-x: auto;
+  margin-top: 1rem;
+  border: 2px solid #1a202c;
+  line-height: 1.5;
+}
+
+/* ============================================================================
+   MEJORAS A ESTADOS EXISTENTES
+   ============================================================================ */
+
+.estado-exito {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(129, 199, 132, 0.1) 100%);
+  border-left: 5px solid #4caf50;
+  color: #2e7d32;
+  font-weight: 600;
+  padding: 1.2rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.estado-exito::before {
+  content: '✅';
+  font-size: 1.5rem;
+}
+
+.estado-cargando .icono {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.estado-error {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(239, 83, 80, 0.1) 100%);
+  border-left: 5px solid #ff6b6b;
+}
+
+.estado-error .icono {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.estado-error strong {
+  color: #c62828;
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.estado-error .detalles {
+  color: #d32f2f;
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
 @media (max-width: 768px) {
   .App-header h1 {
     font-size: 1.8rem;
@@ -246,5 +684,58 @@ footer p {
   .tabla-instituciones td {
     padding: 0.7rem;
     font-size: 0.9rem;
+  }
+
+  .input-group {
+    flex-direction: column;
+  }
+
+  .input-url {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .btn-analizar {
+    width: 100%;
+    padding: 1rem 2rem;
+  }
+
+  .metricas-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .valor-grande {
+    font-size: 2.8rem;
+  }
+
+  .tecnologias-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recomendaciones {
+    padding: 1.5rem;
+  }
+
+  .recomendaciones li {
+    padding: 0.85rem;
+  }
+
+  .matriz-info code {
+    font-size: 0.75rem;
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .valor-grande {
+    font-size: 2.2rem;
+  }
+
+  .metrica-card {
+    padding: 1.5rem;
+  }
+
+  .tech-nombre {
+    font-size: 0.95rem;
   }
 }

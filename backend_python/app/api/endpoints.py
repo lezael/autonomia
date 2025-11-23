@@ -274,3 +274,63 @@ async def obtener_estadisticas():
         "version_analizador": "1.0.0",
         "estado": "operativo"
     }
+
+
+# ============================================================================
+# ENDPOINTS ADICIONALES (para frontend)
+# ============================================================================
+
+# 1. /api/radar-dependencia
+@router.get("/radar-dependencia")
+async def obtener_radar_dependencia():
+    return {
+        "categorias": ["Analítica", "CDN", "CMS", "LMS", "Hosting"],
+        "series": [
+            {
+                "nombre": "Institución Ejemplo",
+                "data": [5, 3, 7, 8, 4]
+            }
+        ]
+    }
+
+
+# 2. /api/instituciones (ARRAY DIRECTO)
+@router.get("/instituciones")
+async def obtener_instituciones():
+    return [  # ← ARRAY DIRECTO, no objeto
+        {
+            "nombre": "Univ_A",
+            "url": "https://example.edu",
+            "indice_soberania": 0.25,
+            "ranking": 3.5
+        },
+        {
+            "nombre": "Univ_B",
+            "url": "https://example2.edu",
+            "indice_soberania": 0.67,
+            "ranking": 8.2
+        }
+    ]
+
+
+# 3. /api/matriz-dependencia
+@router.get("/matriz-dependencia")
+async def obtener_matriz_dependencia():
+    return {
+        "instituciones": ["Univ_A", "Univ_B", "Univ_C"],
+        "tecnologias": ["Moodle", "Google Analytics", "WordPress", "AWS"],
+        "series": [
+            {
+                "name": "Univ_A",
+                "data": [1, 1, 1, 0]
+            },
+            {
+                "name": "Univ_B",
+                "data": [1, 0, 1, 1]
+            },
+            {
+                "name": "Univ_C",
+                "data": [0, 1, 0, 1]
+            }
+        ]
+    }
