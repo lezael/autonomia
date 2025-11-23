@@ -1,0 +1,21 @@
+{
+  "name": "autonomia",
+  "version": "1.0.0",
+  "description": "**Estado del Proyecto**: ✅ **Infraestructura Lista | Pendiente: Interfaz Chat + Análisis Matemático**",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lezael/autonomia.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/lezael/autonomia/issues"
+  },
+  "homepage": "https://github.com/lezael/autonomia#readme"
+}

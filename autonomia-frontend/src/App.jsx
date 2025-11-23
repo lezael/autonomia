@@ -4,23 +4,22 @@ import './App.css';
 
 import {
   Chart as ChartJS,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Radar } from 'react-chartjs-2';
-import Chart from 'react-apexcharts';
+import { Bar } from 'react-chartjs-2';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
 ChartJS.register(
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
   Tooltip,
   Legend
 );
@@ -160,69 +159,291 @@ function FormularioAnalisis({ onAnalisisCompletado }) {
 }
 
 // ============================================================================
-// COMPONENTE: RADAR DE DEPENDENCIA (MEJORADO)
+// COMPONENTE: GRÁFICO DE BARRAS DE DEPENDENCIA
 // ============================================================================
 
-function RadarDependencia() {
-  const [datosRadar, setDatosRadar] = useState(null);
-  const [cargandoRadar, setCargandoRadar] = useState(true);
-  const [errorRadar, setErrorRadar] = useState(null);
+function GraficoDependencia() {
+  const [datosGrafico, setDatosGrafico] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios
-      .get(`${API_BASE_URL}/radar-dependencia`)
-      .then((response) => {
-        setDatosRadar(response.data);
-        setCargandoRadar(false);
-      })
-      .catch((error) => {
-        console.error('Error al traer datos del Radar:', error);
-        setErrorRadar('No se pudieron cargar los datos del Radar');
-        setCargandoRadar(false);
-      });
+    const cargarDatos = () => {
+      axios
+        .get(`${API_BASE_URL}/radar-dependencia`)
+        .then((response) => {
+          console.log('Datos gráfico:', response.data);
+          setDatosGrafico(response.data);
+          setCargando(false);
+        })
+        .catch((error) => {
+          console.error('Error al traer datos del gráfico:', error);
+          setError('No se pudieron cargar los datos');
+          setCargando(false);
+        });
+    };
+
+    cargarDatos();
+    const interval = setInterval(cargarDatos, 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  if (cargandoRadar) {
+  if (cargando) {
     return (
       <div className="section-card">
-        <h2>📊 Dependencia Total por Servicio</h2>
+        <h2>📊 Dependencia por Categoría de Servicio</h2>
         <div className="estado-cargando">
           <div className="icono">⏳</div>
-          <p>Cargando gráfico de radar...</p>
+          <p>Cargando gráfico...</p>
         </div>
       </div>
     );
   }
 
-  if (errorRadar || !datosRadar) {
+  if (error || !datosGrafico || !datosGrafico.categorias || datosGrafico.categorias.length === 0) {
     return (
       <div className="section-card">
-        <h2>📊 Dependencia Total por Servicio</h2>
+        <h2>📊 Dependencia por Categoría de Servicio</h2>
         <div className="estado-error">
           <div className="icono">⚠️</div>
-          <div><strong>No se pudieron cargar los datos del Radar</strong></div>
+          <div><strong>No hay datos disponibles</strong></div>
+          <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Analiza algunas URLs primero</p>
         </div>
       </div>
     );
   }
 
+  const colores = [
+    { bg: 'rgba(102, 126, 234, 0.8)', border: 'rgb(102, 126, 234)' },
+    { bg: 'rgba(255, 99, 132, 0.8)', border: 'rgb(255, 99, 132)' },
+    { bg: 'rgba(75, 192, 192, 0.8)', border: 'rgb(75, 192, 192)' },
+    { bg: 'rgba(255, 206, 86, 0.8)', border: 'rgb(255, 206, 86)' },
+    { bg: 'rgba(153, 102, 255, 0.8)', border: 'rgb(153, 102, 255)' },
+  ];
+
   const data = {
-    labels: datosRadar.categorias || ['Analítica', 'CDN', 'CMS', 'LMS', 'Hosting'],
-    datasets: datosRadar.series?.map((serie, idx) => ({
-      label: serie.nombre,
-      data: serie.data,
-      backgroundColor: `rgba(${idx * 100}, 99, 132, 0.2)`,
-      borderColor: `rgba(${idx * 100}, 99, 132, 1)`,
-      borderWidth: 2,
-    })) || [],
+    labels: datosGrafico.categorias,
+    datasets: datosGrafico.series?.map((serie, idx) => {
+      const color = colores[idx % colores.length];
+      return {
+        label: serie.nombre,
+        data: serie.data,
+        backgroundColor: color.bg,
+        borderColor: color.border,
+        borderWidth: 2,
+        borderRadius: 6,
+        barThickness: 'flex',
+        maxBarThickness: 60,
+      };
+    }) || [],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: datosGrafico.series.length > 1,
+        position: 'top',
+        align: 'center',
+        labels: {
+          padding: 15,
+          font: {
+            size: 14,
+            weight: '600',
+            family: "'Inter', 'system-ui', sans-serif"
+          },
+          color: '#333',
+          usePointStyle: true,
+          pointStyle: 'rectRounded',
+          boxWidth: 12,
+          boxHeight: 12,
+          generateLabels: function(chart) {
+            const datasets = chart.data.datasets;
+            return datasets.map((dataset, i) => ({
+              text: dataset.label,
+              fillStyle: dataset.backgroundColor,
+              strokeStyle: dataset.borderColor,
+              lineWidth: dataset.borderWidth,
+              hidden: !chart.isDatasetVisible(i),
+              index: i
+            }));
+          }
+        }
+      },
+      title: {
+        display: true,
+        text: 'Tecnologías Privativas Detectadas',
+        font: {
+          size: 18,
+          weight: 'bold',
+          family: "'Inter', 'system-ui', sans-serif"
+        },
+        color: '#1a1a1a',
+        padding: {
+          top: 10,
+          bottom: 25
+        }
+      },
+      tooltip: {
+        enabled: true,
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        padding: 16,
+        titleFont: {
+          size: 15,
+          weight: 'bold'
+        },
+        bodyFont: {
+          size: 14
+        },
+        bodySpacing: 8,
+        displayColors: true,
+        boxWidth: 12,
+        boxHeight: 12,
+        boxPadding: 6,
+        callbacks: {
+          title: function(context) {
+            return context[0].label;
+          },
+          label: function(context) {
+            const sitio = context.dataset.label;
+            const valor = context.parsed.y;
+            return ` ${sitio}: ${valor} ${valor === 1 ? 'tecnología' : 'tecnologías'}`;
+          },
+          afterLabel: function(context) {
+            return context.parsed.y > 0 ? '⚠️ Privativas' : '✅ Sin dependencias';
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+          drawBorder: false
+        },
+        ticks: {
+          color: '#1a1a1a',
+          font: {
+            size: 13,
+            weight: '700',
+            family: "'Inter', 'system-ui', sans-serif"
+          },
+          padding: 12,
+          autoSkip: false,
+          maxRotation: 0,
+          minRotation: 0
+        },
+        title: {
+          display: true,
+          text: '📂 Categorías de Tecnología',
+          color: '#4a4a4a',
+          font: {
+            size: 14,
+            weight: '700',
+            family: "'Inter', 'system-ui', sans-serif"
+          },
+          padding: {
+            top: 20,
+            bottom: 0
+          }
+        }
+      },
+      y: {
+        beginAtZero: true,
+        grace: '5%',
+        grid: {
+          color: 'rgba(0, 0, 0, 0.06)',
+          drawBorder: false,
+          lineWidth: 1
+        },
+        ticks: {
+          color: '#4a4a4a',
+          font: {
+            size: 13,
+            weight: '600'
+          },
+          padding: 12,
+          stepSize: 1,
+          precision: 0,
+          callback: function(value) {
+            if (Number.isInteger(value)) {
+              return value;
+            }
+          }
+        },
+        title: {
+          display: true,
+          text: '📊 Cantidad de Tecnologías Privativas',
+          color: '#4a4a4a',
+          font: {
+            size: 14,
+            weight: '700',
+            family: "'Inter', 'system-ui', sans-serif"
+          },
+          padding: {
+            bottom: 20,
+            top: 0
+          }
+        }
+      }
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    },
+    layout: {
+      padding: {
+        top: 10,
+        right: 20,
+        bottom: 10,
+        left: 20
+      }
+    }
   };
 
   return (
     <div className="section-card">
-      <h2>📊 Dependencia Total por Servicio</h2>
-      <div className="estado-exito">✅ Datos cargados correctamente</div>
-      <div className="grafico-container" style={{ maxWidth: '700px', margin: '0 auto' }}>
-        <Radar data={data} />
+      <h2>📊 Análisis de Dependencias por Categoría</h2>
+      <div className="estado-exito">
+        ✅ {datosGrafico.series?.length || 0} {datosGrafico.series?.length === 1 ? 'sitio analizado' : 'sitios analizados'}
+      </div>
+      <p style={{ 
+        color: '#666', 
+        fontSize: '0.95rem', 
+        marginTop: '0.8rem', 
+        marginBottom: '1.8rem',
+        lineHeight: '1.5'
+      }}>
+        <strong>¿Qué muestra este gráfico?</strong> Compara cuántas tecnologías privativas usa cada sitio en diferentes categorías (Analítica, CDN, etc.). 
+        Barras más altas = mayor dependencia de software privativo.
+      </p>
+      <div style={{ 
+        width: '100%', 
+        height: '480px',
+        padding: '2rem',
+        backgroundColor: '#fafbfc',
+        borderRadius: '12px',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        border: '1px solid rgba(0,0,0,0.06)'
+      }}>
+        <Bar data={data} options={options} />
+      </div>
+      
+      {/* Nota explicativa */}
+      <div style={{
+        marginTop: '1.5rem',
+        padding: '1rem 1.5rem',
+        backgroundColor: '#f0f4ff',
+        borderLeft: '4px solid #667eea',
+        borderRadius: '6px'
+      }}>
+        <p style={{ margin: 0, fontSize: '0.9rem', color: '#444' }}>
+          💡 <strong>Interpretación:</strong> Cada barra representa un tipo de tecnología (Analítica, CDN, CMS, etc.). 
+          {datosGrafico.series?.length > 1 
+            ? ' Los colores distinguen entre diferentes sitios web analizados.' 
+            : ' Analiza más URLs para comparar sitios.'}
+        </p>
       </div>
     </div>
   );
@@ -365,40 +586,42 @@ function HeatmapMatriz() {
     );
   }
 
-  const options = {
-    chart: { id: 'heatmap-dependencia' },
-    xaxis: {
-      categories: datosHeatmap.tecnologias || datosHeatmap.categorias || [],
-    },
-    plotOptions: {
-      heatmap: {
-        colorScale: {
-          ranges: [
-            { from: 0, to: 0, color: '#00A100', name: 'No Dependiente' },
-            { from: 1, to: 1, color: '#FF0000', name: 'Dependiente' },
-          ],
-        },
-      },
-    },
-    dataLabels: {
-      enabled: false,
-    },
-    title: {
-      text: 'Heatmap de Matriz de Dependencia (D)',
-    },
-  };
-
   return (
     <div className="section-card">
-      <h2>🔥 Heatmap Matricial de Dependencia</h2>
+      <h2>🔥 Matriz de Dependencia</h2>
       <div className="estado-exito">✅ Datos cargados correctamente</div>
-      <div className="grafico-container">
-        <Chart
-          options={options}
-          series={datosHeatmap.series || []}
-          type="heatmap"
-          height={300}
-        />
+      <div className="matriz-visualizacion">
+        <table className="matriz-tabla">
+          <thead>
+            <tr>
+              <th>Institución/Tecnología</th>
+              {(datosHeatmap.tecnologias || datosHeatmap.categorias || []).map((tech, idx) => (
+                <th key={idx}>{tech}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(datosHeatmap.series || []).map((serie, idx) => (
+              <tr key={idx}>
+                <td><strong>{serie.name || serie.nombre}</strong></td>
+                {(serie.data || []).map((valor, cellIdx) => (
+                  <td 
+                    key={cellIdx} 
+                    className={valor === 1 ? 'cell-dependiente' : 'cell-libre'}
+                    style={{
+                      backgroundColor: valor === 1 ? '#ff6b6b' : '#51cf66',
+                      color: 'white',
+                      textAlign: 'center',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {valor}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -433,7 +656,7 @@ function App() {
         
         <hr className="separador" />
         
-        <RadarDependencia />
+        <GraficoDependencia />
         
         <hr className="separador" />
         

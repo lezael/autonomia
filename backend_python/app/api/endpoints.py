@@ -4,7 +4,7 @@ Gestiona análisis de URLs y métricas de soberanía tecnológica.
 """
 import time
 from fastapi import APIRouter, HTTPException
-from typing import List
+from typing import List, Dict
 
 from app.api.modelos import (
     SolicitudAnalisis,
@@ -16,6 +16,14 @@ from app.api.modelos import (
 from app.extraccion.manejador_peticiones import obtener_contenido_url
 from app.analisis.analizador import analizador
 from app.utilidades.logger_config import logger_app
+
+
+# ============================================================================
+# ALMACENAMIENTO EN MEMORIA DE ANÁLISIS
+# ============================================================================
+
+# Almacenar los análisis realizados
+analisis_realizados: List[Dict] = []
 
 
 # ============================================================================
@@ -178,6 +186,23 @@ async def analizar_url(solicitud: SolicitudAnalisis):
         
         logger_app.info(f"✅ Análisis completado en {tiempo_ms}ms")
         
+        # Guardar análisis en memoria
+        analisis_realizados.append({
+            "nombre": url_str.split('/')[2] if len(url_str.split('/')) > 2 else url_str,
+            "url": url_str,
+            "indice_soberania": indice_soberania,
+            "ranking_normalizado": ranking_normalizado,
+            "tecnologias": tecnologias,
+            "tecnologias_libres_count": tecnologias_libres,
+            "tecnologias_privativas_count": tecnologias_privativas,
+            "matriz_dependencia": matriz_dependencia,
+            "timestamp": time.time()
+        })
+        
+        # Mantener solo los últimos 10 análisis
+        if len(analisis_realizados) > 10:
+            analisis_realizados.pop(0)
+        
         return resultado
         
     except HTTPException:
@@ -283,54 +308,115 @@ async def obtener_estadisticas():
 # 1. /api/radar-dependencia
 @router.get("/radar-dependencia")
 async def obtener_radar_dependencia():
+    """Retorna datos para el gráfico de radar basado en análisis reales"""
+    if not analisis_realizados:
+        # Datos de ejemplo si no hay análisis
+        return {
+            "categorias": ["Analítica", "CDN", "CMS", "LMS", "Hosting"],
+            "series": [
+                {
+                    "nombre": "Sin análisis aún",
+                    "data": [0, 0, 0, 0, 0]
+                }
+            ]
+        }
+    
+    # Obtener categorías únicas de todas las tecnologías
+    todas_categorias = set()
+    for analisis in analisis_realizados:
+        for tech in analisis['tecnologias']:
+            todas_categorias.add(tech.categoria)
+    
+    categorias = sorted(list(todas_categorias))[:5]  # Máximo 5 categorías
+    
+    # Crear series con conteo de tecnologías privativas por categoría
+    series = []
+    for analisis in analisis_realizados[-3:]:  # Últimos 3 análisis
+        data = []
+        for cat in categorias:
+            count = sum(1 for t in analisis['tecnologias'] 
+                       if t.categoria == cat and t.tipo == TipoTecnologia.PRIVATIVO)
+            data.append(count)
+        
+        series.append({
+            "nombre": analisis['nombre'],
+            "data": data
+        })
+    
     return {
-        "categorias": ["Analítica", "CDN", "CMS", "LMS", "Hosting"],
-        "series": [
-            {
-                "nombre": "Institución Ejemplo",
-                "data": [5, 3, 7, 8, 4]
-            }
-        ]
+        "categorias": categorias,
+        "series": series
     }
 
 
 # 2. /api/instituciones (ARRAY DIRECTO)
 @router.get("/instituciones")
 async def obtener_instituciones():
-    return [  # ← ARRAY DIRECTO, no objeto
+    """Retorna lista de instituciones analizadas"""
+    if not analisis_realizados:
+        # Datos de ejemplo si no hay análisis
+        return [
+            {
+                "nombre": "Sin análisis aún",
+                "url": "Analiza una URL primero",
+                "indice_soberania": 0.0,
+                "ranking_normalizado": 0.0
+            }
+        ]
+    
+    # Retornar análisis reales
+    return [
         {
-            "nombre": "Univ_A",
-            "url": "https://example.edu",
-            "indice_soberania": 0.25,
-            "ranking": 3.5
-        },
-        {
-            "nombre": "Univ_B",
-            "url": "https://example2.edu",
-            "indice_soberania": 0.67,
-            "ranking": 8.2
+            "nombre": a['nombre'],
+            "url": a['url'],
+            "indice_soberania": a['indice_soberania'],
+            "ranking_normalizado": a['ranking_normalizado']
         }
+        for a in analisis_realizados
     ]
 
 
 # 3. /api/matriz-dependencia
 @router.get("/matriz-dependencia")
 async def obtener_matriz_dependencia():
+    """Retorna matriz de dependencia basada en análisis reales"""
+    if not analisis_realizados:
+        # Datos de ejemplo si no hay análisis
+        return {
+            "instituciones": ["Sin análisis"],
+            "tecnologias": ["Analiza URLs primero"],
+            "series": [
+                {
+                    "name": "Sin datos",
+                    "data": [0]
+                }
+            ]
+        }
+    
+    # Obtener todas las tecnologías únicas
+    todas_tecnologias = set()
+    for analisis in analisis_realizados:
+        for tech in analisis['tecnologias']:
+            todas_tecnologias.add(tech.nombre)
+    
+    tecnologias = sorted(list(todas_tecnologias))[:10]  # Máximo 10 tecnologías
+    
+    # Crear series con matriz de dependencia
+    series = []
+    for analisis in analisis_realizados:
+        data = []
+        for tech_nombre in tecnologias:
+            # 1 si la institución usa la tecnología, 0 si no
+            usa = 1 if any(t.nombre == tech_nombre for t in analisis['tecnologias']) else 0
+            data.append(usa)
+        
+        series.append({
+            "name": analisis['nombre'],
+            "data": data
+        })
+    
     return {
-        "instituciones": ["Univ_A", "Univ_B", "Univ_C"],
-        "tecnologias": ["Moodle", "Google Analytics", "WordPress", "AWS"],
-        "series": [
-            {
-                "name": "Univ_A",
-                "data": [1, 1, 1, 0]
-            },
-            {
-                "name": "Univ_B",
-                "data": [1, 0, 1, 1]
-            },
-            {
-                "name": "Univ_C",
-                "data": [0, 1, 0, 1]
-            }
-        ]
+        "instituciones": [a['nombre'] for a in analisis_realizados],
+        "tecnologias": tecnologias,
+        "series": series
     }
